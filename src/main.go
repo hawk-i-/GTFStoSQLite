@@ -24,7 +24,7 @@ func main() {
 
 	flag.StringVar(&gtfsDir, "source", "", "Directory path for gtfs files is passed in source flag")
 	flag.StringVar(&dbPath, "db", "", "target db path goes in db flag")
-	flag.IntVar(&batchSize, "size", 100000, "batch size can be passed default: 500000")
+	flag.IntVar(&batchSize, "size", 100000, "batch size can be passed default: 100000")
 	flag.Parse()
 
 	if gtfsDir == "" || dbPath == "" {
