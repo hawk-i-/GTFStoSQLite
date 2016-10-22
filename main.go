@@ -10,6 +10,7 @@ import (
 	"strings"
 	"flag"
 	"github.com/pkg/errors"
+	"path"
 )
 
 type GTFSFile struct {
@@ -21,6 +22,7 @@ func main() {
 	var gtfsDir string
 	var dbPath string
 	var batchSize int
+
 
 	flag.StringVar(&gtfsDir, "source", "", "Directory path for gtfs files is passed in source flag")
 	flag.StringVar(&dbPath, "db", "", "target db path goes in db flag")
@@ -43,7 +45,8 @@ func main() {
 	checkError(err)
 
 	for _,file := range files {
-		filePath := fmt.Sprintf("%s\\%s", gtfsDir, file)
+
+		filePath := fmt.Sprintf(path.Join(gtfsDir, file))
 		data, headers, err := readCSV(filePath, true)
 
 		checkError(err)
