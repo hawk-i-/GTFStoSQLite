@@ -20,9 +20,11 @@ type GTFSFile struct {
 func main() {
 	var gtfsDir string
 	var dbPath string
+	var batchSize int
 
 	flag.StringVar(&gtfsDir, "source", "", "Directory path for gtfs files is passed in source flag")
 	flag.StringVar(&dbPath, "db", "", "target db path goes in db flag")
+	flag.IntVar(&batchSize, "size", 100000, "batch size can be passed default: 500000")
 	flag.Parse()
 
 	if gtfsDir == "" || dbPath == "" {
@@ -33,6 +35,8 @@ func main() {
 	db, err := sql.Open("sqlite3", dbPath)
 
 	checkError(err)
+
+	defer db.Close()
 
 	files, err := getFileNames(gtfsDir)
 
@@ -48,9 +52,12 @@ func main() {
 		db.Exec(getCreateTableQuery(name, headers))
 		fmt.Printf("%s created\n", name)
 
+		if batchSize > 0 {
+			batchSliceTask(data, batchSize, getMultiInsertTask(db, name))
+		} else {
+			db.Exec(getMultiInsertQuery(name, data))
+		}
 
-		db.Exec(getMultiInsertQuery(name, data))
-		fmt.Printf("%d records added to %s\n", len(data), name)
 	}
 }
 
@@ -110,17 +117,19 @@ func checkError(err error) {
 	}
 }
 
+func getMultiInsertTask (db *sql.DB, name string) (func(data [][]string)){
+	return func(data [][]string) {
+		query := getMultiInsertQuery(name, data)
+		db.Exec(query)
+		fmt.Printf("%d records added to %s\n", len(data), name)
+	}
+}
+
 func getCreateTableQuery(name string, headers []string) (finalQuery string) {
 	innerQuery := strings.Join(headers[:], " test, ") + " text"
 	finalQuery = fmt.Sprintf("Create table %s (%s);", name, innerQuery)
 	return
 }
-
-//func getInsertQuery(name string, data []string) (finalQuery string){
-//	innerQuery := "'" + strings.Join(data[:], "', '") + "'"
-//	finalQuery = fmt.Sprintf("Insert into %s values (%s);", name, innerQuery)
-//	return
-//}
 
 func getMultiInsertQuery(name string, data [][]string) (finalQuery string) {
 	var innerQueries []string
@@ -130,4 +139,19 @@ func getMultiInsertQuery(name string, data [][]string) (finalQuery string) {
 
 	finalQuery = fmt.Sprintf("Insert into %s values %s;", name, strings.Join(innerQueries[:], ", "))
 	return
+}
+
+func batchSliceTask (s [][]string, size int, task func(data [][]string)) {
+	var subSlice [][]string
+	run := len(s) > 0
+	for run {
+		if size < len(s) {
+			subSlice = s[:size]
+			s = s[size:]
+			task(subSlice)
+		} else {
+			task(s)
+			run = false
+		}
+	}
 }
