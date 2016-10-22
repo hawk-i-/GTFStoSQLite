@@ -6,7 +6,7 @@ This is a GTFS parser build using golang to parse GTFS data to SQLite database
 
 The executables are in dist folder
 ### for Windows
-```
+```batch
 GTFStoSQLite.exe 
     -source="path\to\GTFS\directory" 
     -db="path\to\sqlite.db"
